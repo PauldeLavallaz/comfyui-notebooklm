@@ -2,7 +2,7 @@
 NotebookLM Chat Node
 ────────────────────
 Sends a message to an existing NotebookLM notebook and returns the response.
-Supports follow-up conversations via conversation_id.
+Always starts a new conversation.
 """
 
 import logging
@@ -25,8 +25,8 @@ class NotebookLM_ScriptGenerator:
 
     CATEGORY = "NotebookLM"
     FUNCTION = "send_message"
-    RETURN_TYPES = ("STRING", "STRING", "STRING")
-    RETURN_NAMES = ("response", "conversation_id", "notebook_id")
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("response",)
     OUTPUT_NODE = True
 
     @classmethod
@@ -38,7 +38,7 @@ class NotebookLM_ScriptGenerator:
                     {
                         "default": "",
                         "multiline": False,
-                        "placeholder": "Notebook ID (from notebooklm list)",
+                        "placeholder": "Notebook ID (from URL or notebooklm list)",
                     },
                 ),
                 "message": (
@@ -49,44 +49,26 @@ class NotebookLM_ScriptGenerator:
                     },
                 ),
             },
-            "optional": {
-                "conversation_id": (
-                    "STRING",
-                    {
-                        "default": "",
-                        "multiline": False,
-                        "placeholder": "For follow-up messages (optional)",
-                    },
-                ),
-            },
         }
 
     @classmethod
     def IS_CHANGED(cls, **kwargs):
         return float("nan")
 
-    def send_message(
-        self,
-        notebook_id: str,
-        message: str,
-        conversation_id: str = "",
-    ):
+    def send_message(self, notebook_id: str, message: str):
         from ..utils.notebooklm_cli import ask_question
 
         notebook_id = notebook_id.strip()
         if not notebook_id:
-            raise ValueError("notebook_id is required. Run: notebooklm list")
+            raise ValueError("notebook_id is required. Get it from the notebook URL.")
         if not message.strip():
             raise ValueError("message is required")
 
         logger.info(f"Sending message to notebook {notebook_id[:8]}...")
 
-        conv_id = conversation_id.strip() if conversation_id else None
-        result = ask_question(notebook_id, message.strip(), conversation_id=conv_id)
-
+        result = ask_question(notebook_id, message.strip())
         response = result.get("answer", "")
-        new_conv_id = result.get("conversation_id", "")
 
         logger.info(f"Response: {len(response)} chars")
 
-        return (response, new_conv_id, notebook_id)
+        return (response,)
