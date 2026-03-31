@@ -11,13 +11,26 @@ from typing import Any, Optional
 
 logger = logging.getLogger("comfyui-notebooklm")
 
-NOTEBOOKLM_BIN = shutil.which("notebooklm")
+import os
+
+# Search common locations since ComfyUI's venv may not have notebooklm in PATH
+_SEARCH_PATHS = [
+    shutil.which("notebooklm"),
+    os.path.expanduser("~/anaconda3/bin/notebooklm"),
+    os.path.expanduser("~/miniconda3/bin/notebooklm"),
+    "/usr/local/bin/notebooklm",
+    os.path.expanduser("~/.local/bin/notebooklm"),
+]
+
+NOTEBOOKLM_BIN = next((p for p in _SEARCH_PATHS if p and os.path.isfile(p)), None)
 
 if NOTEBOOKLM_BIN is None:
     logger.warning(
-        "notebooklm CLI not found in PATH. "
+        "notebooklm CLI not found. "
         "Install with: pip install 'notebooklm-py[browser]'"
     )
+else:
+    logger.info(f"notebooklm CLI found at: {NOTEBOOKLM_BIN}")
 
 
 class NotebookLMCLIError(Exception):
